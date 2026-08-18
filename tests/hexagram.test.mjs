@@ -55,3 +55,47 @@ test('maps all-yang and all-yin lines to Qian and Kun', () => {
   assert.equal(getHexagramFromBits('111111').name, '乾')
   assert.equal(getHexagramFromBits('000000').name, '坤')
 })
+
+test('exhaustively validates all 4096 six-throw outcomes', () => {
+  const lineValues = [6, 7, 8, 9]
+  const pairKeys = new Set()
+  const originalKeys = new Set()
+  const transformedKeys = new Set()
+  let outcomeCount = 0
+
+  const visit = (sequence) => {
+    if (sequence.length === 6) {
+      const result = getHexagramFromLines(sequence)
+      const originalKey = result.original.bits
+      const transformedKey = result.transformed.bits
+      const pairKey = `${originalKey}->${transformedKey}`
+
+      assert.equal(result.lines.length, 6)
+      assert.equal(result.changingLines.length, sequence.filter((value) => value === 6 || value === 9).length)
+      assert.equal(pairKeys.has(pairKey), false, `duplicate outcome pair: ${pairKey}`)
+
+      for (let index = 0; index < 6; index += 1) {
+        const line = result.lines[index]
+        const expectedBit = value => (value === 6 || value === 8 ? '0' : '1')
+        const expectedTransformedBit = value => (value === 6 || value === 7 ? '1' : '0')
+        assert.equal(line.bit, Number(expectedBit(sequence[index])))
+        assert.equal(line.transformedBit, Number(expectedTransformedBit(sequence[index])))
+      }
+
+      pairKeys.add(pairKey)
+      originalKeys.add(originalKey)
+      transformedKeys.add(transformedKey)
+      outcomeCount += 1
+      return
+    }
+
+    for (const value of lineValues) visit([...sequence, value])
+  }
+
+  visit([])
+
+  assert.equal(outcomeCount, 4 ** 6)
+  assert.equal(pairKeys.size, 4096)
+  assert.equal(originalKeys.size, 64)
+  assert.equal(transformedKeys.size, 64)
+})
