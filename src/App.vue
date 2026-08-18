@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
-import { getHexagramFromLines, getLineFromCoins } from './utils/hexagram.js'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { appendHistory, readHistory, writeHistory } from './utils/history.js'
+import { getCoinsFromLineValue, getHexagramFromLines, getLineFromCoins, parseTestSequence } from './utils/hexagram.js'
 
 const phases = Object.freeze({ welcome: 'welcome', casting: 'casting', result: 'result' })
 const phase = ref(phases.welcome)
@@ -9,6 +10,9 @@ const result = ref(null)
 const isTossing = ref(false)
 const lastCoins = ref([])
 const motionPaused = ref(false)
+const history = ref(readHistory())
+const historyOpen = ref(false)
+const testSequence = ref(parseTestSequence(window.location.hash))
 let tossTimer
 
 const particles = Array.from({ length: 36 }, (_, index) => ({
@@ -23,6 +27,7 @@ const currentAttempt = computed(() => records.value.length + 1)
 const currentPosition = computed(() => ['初爻', '二爻', '三爻', '四爻', '五爻', '上爻'][records.value.length] ?? '上爻')
 const currentLine = computed(() => lastCoins.value.length ? getLineFromCoins(lastCoins.value) : null)
 const isComplete = computed(() => records.value.length === 6)
+const historyCount = computed(() => history.value.length)
 
 const randomCoin = () => {
   if (globalThis.crypto?.getRandomValues) {
@@ -35,6 +40,7 @@ const randomCoin = () => {
 
 const startDivination = () => {
   clearTimeout(tossTimer)
+  historyOpen.value = false
   records.value = []
   result.value = null
   lastCoins.value = []
@@ -45,7 +51,10 @@ const startDivination = () => {
 const tossCoins = () => {
   if (isTossing.value || isComplete.value) return
   isTossing.value = true
-  lastCoins.value = [randomCoin(), randomCoin(), randomCoin()]
+  const testValue = testSequence.value?.[records.value.length]
+  lastCoins.value = testValue
+    ? getCoinsFromLineValue(testValue)
+    : [randomCoin(), randomCoin(), randomCoin()]
   tossTimer = window.setTimeout(() => { isTossing.value = false }, 1150)
 }
 
@@ -54,13 +63,72 @@ const recordCast = () => {
   records.value = [...records.value, currentLine.value]
   if (records.value.length === 6) {
     result.value = getHexagramFromLines(records.value.map((line) => line.value))
+    const record = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: Date.now(),
+      lines: records.value.map((line) => line.value),
+    }
+    history.value = writeHistory(appendHistory(history.value, record))
     phase.value = phases.result
     return
   }
   tossCoins()
 }
 
-onBeforeUnmount(() => clearTimeout(tossTimer))
+const openHistory = () => {
+  history.value = readHistory()
+  historyOpen.value = true
+}
+
+const closeHistory = () => {
+  historyOpen.value = false
+}
+
+const viewHistory = (record) => {
+  records.value = record.lines.map((value) => getLineFromCoins(getCoinsFromLineValue(value)))
+  result.value = getHexagramFromLines(record.lines)
+  historyOpen.value = false
+  phase.value = phases.result
+}
+
+const clearHistory = () => {
+  if (!history.value.length || !window.confirm('确定要清空全部卦象历史吗？')) return
+  history.value = writeHistory([])
+}
+
+const formatHistoryDate = (timestamp) => new Intl.DateTimeFormat('zh-CN', {
+  month: 'numeric',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+}).format(timestamp)
+
+const applyTestSequence = () => {
+  testSequence.value = parseTestSequence(window.location.hash)
+  if (!testSequence.value) {
+    clearTimeout(tossTimer)
+    records.value = []
+    result.value = null
+    lastCoins.value = []
+    isTossing.value = false
+    phase.value = phases.welcome
+    return
+  }
+
+  records.value = testSequence.value.map((value) => getLineFromCoins(getCoinsFromLineValue(value)))
+  result.value = getHexagramFromLines(testSequence.value)
+  phase.value = phases.result
+}
+
+onMounted(() => {
+  applyTestSequence()
+  window.addEventListener('hashchange', applyTestSequence)
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(tossTimer)
+  window.removeEventListener('hashchange', applyTestSequence)
+})
 </script>
 
 <template>
@@ -72,8 +140,25 @@ onBeforeUnmount(() => clearTimeout(tossTimer))
 
     <header class="topbar">
       <button class="brand" type="button" aria-label="返回赛博八卦首页" @click="phase = phases.welcome"><span class="brand-seal">✦</span><span>赛博八卦</span></button>
-      <div class="topbar-tools"><button class="motion-toggle" type="button" :aria-pressed="!motionPaused" @click="motionPaused = !motionPaused"><span>{{ motionPaused ? '动效已暂停' : '动效开启' }}</span><i></i></button><span class="system-status"><i></i> 易象引擎在线</span></div>
+      <div class="topbar-tools"><button v-if="phase !== phases.casting" class="history-button" type="button" @click="openHistory"><span>历史记录</span><b>{{ historyCount }}/10</b></button><button class="motion-toggle" type="button" :aria-pressed="!motionPaused" @click="motionPaused = !motionPaused"><span>{{ motionPaused ? '动效已暂停' : '动效开启' }}</span><i></i></button><span class="system-status"><i></i> 易象引擎在线</span></div>
     </header>
+
+    <Transition name="history">
+      <div v-if="historyOpen" class="history-layer">
+        <button class="history-backdrop" type="button" aria-label="关闭历史记录" @click="closeHistory"></button>
+        <aside class="history-drawer" aria-labelledby="history-title">
+          <div class="history-drawer-heading"><div><p class="eyebrow"><span>HISTORY</span> LOCAL ARCHIVE</p><h2 id="history-title">卦象历史</h2></div><button class="history-close" type="button" aria-label="关闭历史记录" @click="closeHistory">×</button></div>
+          <p v-if="!history.length" class="history-empty">完成一次起卦后，结果会自动保存在这里。</p>
+          <ol v-else class="history-list">
+            <li v-for="record in history" :key="record.id" class="history-item">
+              <button type="button" @click="viewHistory(record)"><span class="history-item-index">{{ String(history.indexOf(record) + 1).padStart(2, '0') }}</span><span class="history-item-main"><strong>{{ record.lines.length === 6 ? getHexagramFromLines(record.lines).original.name : '未知卦象' }}</strong><small>{{ formatHistoryDate(record.createdAt) }} · {{ getHexagramFromLines(record.lines).changingLines.length ? `动爻 ${getHexagramFromLines(record.lines).changingLines.length} 条` : '静卦' }}</small></span><span class="history-arrow">↗</span></button>
+            </li>
+          </ol>
+          <button v-if="history.length" class="history-clear" type="button" @click="clearHistory">清空历史记录</button>
+          <small class="history-note">仅保存在当前浏览器 · 最多保留 10 条</small>
+        </aside>
+      </div>
+    </Transition>
 
     <Transition name="phase" mode="in-out">
     <section v-if="phase === phases.welcome" key="welcome" class="welcome-view" aria-labelledby="page-title">
@@ -104,8 +189,8 @@ onBeforeUnmount(() => clearTimeout(tossTimer))
 
     <section v-else key="result" class="result-view" aria-labelledby="result-title">
       <div class="section-heading"><div><p class="eyebrow"><span>03</span> ORACLE RESOLVED / 卦象已成</p><h1 id="result-title">此刻，<em>有象</em>。</h1></div><button class="ghost-button" type="button" @click="startDivination">重新起卦 ↗</button></div>
-      <div class="result-grid"><article v-for="(hexagram, index) in [result.original, result.transformed]" :key="`${hexagram.number}-${index}`" class="hexagram-card" :class="{ transformed: index === 1 }"><div class="card-kicker">{{ index === 0 ? '本卦 / PRESENT FORM' : '变卦 / EMERGING FORM' }}</div><div class="hexagram-symbol" aria-hidden="true">{{ hexagram.symbol }}</div><div class="hexagram-name"><small>第 {{ hexagram.number }} 卦</small><h2>{{ hexagram.name }}</h2></div><div class="trigram-pair"><span>{{ hexagram.upper.symbol }} {{ hexagram.upper.name }} · {{ hexagram.upper.natural }}</span><i>上卦</i><span>{{ hexagram.lower.symbol }} {{ hexagram.lower.name }} · {{ hexagram.lower.natural }}</span><i>下卦</i></div><div class="judgment"><span>卦辞</span><p>{{ hexagram.judgment }}</p></div></article></div>
-      <div class="result-footer"><div class="mini-lines"><span v-for="(line, index) in result.lines" :key="index" :class="[line.yinYang, { changing: line.changing }]">{{ line.yinYang === 'yang' ? '━━━━━' : '━━　━━' }}</span></div><p>{{ result.changingLines.length ? `动爻：${result.changingLines.map((index) => ['初', '二', '三', '四', '五', '上'][index] + '爻').join('、')}` : '本次无动爻 · 本卦与变卦相同' }}<br /><small>卦辞据《周易》原典 · 结果仅供传统文化体验</small></p></div>
+      <div class="result-grid"><article class="hexagram-card"><div class="card-kicker">本卦 / PRESENT FORM</div><div class="hexagram-symbol" aria-hidden="true">{{ result.original.symbol }}</div><div class="hexagram-name"><small>第 {{ result.original.number }} 卦</small><h2>{{ result.original.name }}</h2></div><div class="trigram-pair"><span>{{ result.original.upper.symbol }} {{ result.original.upper.name }} · {{ result.original.upper.natural }}</span><i>上卦</i><span>{{ result.original.lower.symbol }} {{ result.original.lower.name }} · {{ result.original.lower.natural }}</span><i>下卦</i></div><div class="judgment"><span>卦辞</span><p>{{ result.original.judgment }}</p></div></article><article v-if="result.changingLines.length" class="hexagram-card transformed"><div class="card-kicker">变卦 / EMERGING FORM</div><div class="hexagram-symbol" aria-hidden="true">{{ result.transformed.symbol }}</div><div class="hexagram-name"><small>第 {{ result.transformed.number }} 卦</small><h2>{{ result.transformed.name }}</h2></div><div class="trigram-pair"><span>{{ result.transformed.upper.symbol }} {{ result.transformed.upper.name }} · {{ result.transformed.upper.natural }}</span><i>上卦</i><span>{{ result.transformed.lower.symbol }} {{ result.transformed.lower.name }} · {{ result.transformed.lower.natural }}</span><i>下卦</i></div><div class="judgment"><span>卦辞</span><p>{{ result.transformed.judgment }}</p></div></article></div>
+      <div class="result-footer"><div class="mini-lines"><span v-for="(line, index) in result.lines" :key="index" :class="[line.yinYang, { changing: line.changing }]">{{ line.yinYang === 'yang' ? '━━━━━' : '━━　━━' }}</span></div><p>{{ result.changingLines.length ? `动爻：${result.changingLines.map((index) => ['初', '二', '三', '四', '五', '上'][index] + '爻').join('、')}` : '本次无动爻 · 静卦仅取本卦' }}<br /><small>卦辞据《周易》原典 · 结果仅供传统文化体验</small></p></div>
     </section>
     </Transition>
   </main>
@@ -127,4 +212,7 @@ onBeforeUnmount(() => clearTimeout(tossTimer))
   @keyframes drift { from { transform: translate3d(0,0,0) scale(.7); opacity: .25; } to { transform: translate3d(16px,-22px,0) scale(1.6); opacity: 1; } } @keyframes spin { to { transform: rotate(360deg); } } @keyframes spin-reverse { to { transform: rotate(-360deg); } } @keyframes coin-flip { 0% { transform: rotateY(0) rotateZ(0) translateY(0); } 45% { transform: rotateY(900deg) rotateZ(10deg) translateY(-42px); } 100% { transform: rotateY(1800deg) rotateZ(0) translateY(0); } } @keyframes seal-pulse { 0%, 100% { box-shadow: 0 0 12px rgba(220,162,96,.2); transform: rotate(0); } 50% { box-shadow: 0 0 28px rgba(220,162,96,.65); transform: rotate(12deg); } } @keyframes status-pulse { 50% { transform: scale(1.7); opacity: .45; } } @keyframes ring-breathe { 50% { opacity: .62; transform: rotate(-10deg) scale(1.03); } } @keyframes core-pulse { 50% { box-shadow: 0 0 54px rgba(92,245,212,.52), inset 0 0 38px rgba(92,245,212,.2); } } @keyframes panel-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } } @keyframes sequence-in { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } } @keyframes result-card-in { from { opacity: 0; transform: translateY(28px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } } @keyframes button-breathe { 0%, 100% { transform: translateY(0); box-shadow: 0 0 0 5px rgba(92,245,212,.08), 0 0 35px rgba(92,245,212,.35), inset 0 0 20px rgba(92,245,212,.08); } 50% { transform: translateY(-4px); box-shadow: 0 0 0 10px rgba(92,245,212,.03), 0 0 60px rgba(92,245,212,.58), inset 0 0 30px rgba(92,245,212,.15); } } @keyframes text-reveal { from { opacity: 0; transform: translateY(24px); filter: blur(10px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } } @keyframes copy-reveal { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: translateX(0); } }
   @media (max-width: 760px) { padding: 22px 18px 32px; .system-status { display: none; }.welcome-view { display: flex; min-height: calc(100vh - 80px); flex-direction: column; align-items: stretch; justify-content: center; gap: 30px; }.hero-copy { text-align: center; }.hero-copy .eyebrow { margin-bottom: 17px; }.intro { margin-top: 23px; }.compass-stage { width: min(78vw,370px); align-self: center; }.start-panel { margin-top: 0; }.casting-view, .result-view { padding-top: 62px; }.casting-grid, .result-grid { grid-template-columns: 1fr; }.section-heading { align-items: flex-start; margin-bottom: 28px; }.progress-orbit { width: 58px; height: 58px; font-size: 16px; }.coins-panel { min-height: 360px; }.coin-trail { width: 300px; }.record-panel { padding: 18px; }.result-grid { gap: 14px; }.hexagram-card { min-height: auto; }.result-footer { align-items: flex-start; gap: 18px; padding: 18px 0; } }
 }
+.history-button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid rgba(220,162,96,.38); padding: 6px 9px; background: rgba(34,28,35,.58); color: #d8b285; font: 9px 'DM Mono', monospace; letter-spacing: .08em; }.history-button b { color: #f1dfc9; font-weight: 400; }.history-button:hover, .history-button:focus-visible { border-color: #dca260; background: rgba(220,162,96,.1); }
+.history-layer { position: fixed; inset: 0; z-index: 10; }.history-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgba(3,6,22,.7); backdrop-filter: blur(5px); }.history-drawer { position: absolute; top: 0; right: 0; display: flex; width: min(430px, 92vw); height: 100%; flex-direction: column; padding: 34px clamp(22px,4vw,42px); border-left: 1px solid rgba(92,245,212,.24); background: linear-gradient(160deg, rgba(13,21,55,.98), rgba(18,11,35,.98)); box-shadow: -18px 0 70px rgba(0,0,0,.34); }.history-drawer-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding-bottom: 25px; border-bottom: 1px solid rgba(121,144,215,.18); }.history-drawer-heading .eyebrow { margin-bottom: 13px; }.history-drawer-heading h2 { margin: 0; color: #eef2ff; font-size: 31px; letter-spacing: -.06em; }.history-close { width: 36px; height: 36px; border: 1px solid rgba(92,245,212,.24); background: transparent; color: #8cefe0; font-size: 25px; line-height: 1; }.history-close:hover, .history-close:focus-visible { border-color: #5cf5d4; background: rgba(92,245,212,.08); }.history-empty { margin: 28px 0; color: #8490bb; font-size: 13px; line-height: 1.9; }.history-list { display: grid; gap: 8px; overflow-y: auto; margin: 24px 0; padding: 0; list-style: none; }.history-item button { display: grid; width: 100%; grid-template-columns: 28px 1fr auto; align-items: center; gap: 13px; border: 1px solid rgba(121,144,215,.14); padding: 14px 13px; background: rgba(10,18,48,.55); color: inherit; text-align: left; }.history-item button:hover, .history-item button:focus-visible { border-color: rgba(92,245,212,.6); background: rgba(92,245,212,.06); }.history-item-index { color: #dca260; font: 10px 'DM Mono', monospace; }.history-item-main { display: grid; gap: 5px; }.history-item-main strong { color: #ecf2ff; font-size: 14px; font-weight: 700; }.history-item-main small { color: #7180b8; font: 10px 'DM Mono', monospace; }.history-arrow { color: #5cf5d4; font-size: 18px; }.history-clear { align-self: flex-start; border: 0; padding: 8px 0; background: transparent; color: #c886a9; font-size: 11px; }.history-clear:hover, .history-clear:focus-visible { color: #ff9ccd; }.history-note { margin-top: auto; color: #58658f; font: 10px 'DM Mono', monospace; }.history-enter-active, .history-leave-active { transition: opacity .3s ease; }.history-enter-active .history-drawer, .history-leave-active .history-drawer { transition: transform .4s cubic-bezier(.16,1,.3,1); }.history-enter-from, .history-leave-to { opacity: 0; }.history-enter-from .history-drawer, .history-leave-to .history-drawer { transform: translateX(100%); }
+@media (max-width: 760px) { .topbar-tools { gap: 8px; }.history-button { padding-inline: 7px; }.history-button span { display: none; } }
 </style>

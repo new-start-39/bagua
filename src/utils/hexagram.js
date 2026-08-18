@@ -10,6 +10,25 @@ export const LINE_BY_VALUE = Object.freeze({
   9: Object.freeze({ value: 9, name: '老阳', yinYang: 'yang', changing: true, bit: 1, transformedBit: 0 }),
 })
 
+const TEST_LINE_PATTERN = /^[6789](?:,[6789]){5}$/
+
+export const getCoinsFromLineValue = (value) => {
+  assertLineValue(value)
+  const coinsByValue = {
+    6: ['character', 'character', 'character'],
+    7: ['character', 'character', 'back'],
+    8: ['character', 'back', 'back'],
+    9: ['back', 'back', 'back'],
+  }
+  return [...coinsByValue[value]]
+}
+
+export const parseTestSequence = (hash) => {
+  const match = String(hash ?? '').match(/^#test=(.*)$/)
+  if (!match || !TEST_LINE_PATTERN.test(match[1])) return null
+  return match[1].split(',').map(Number)
+}
+
 const assertLineValue = (value) => {
   if (!LINE_BY_VALUE[value]) throw new RangeError(`Line value must be 6, 7, 8 or 9; received ${value}`)
   return LINE_BY_VALUE[value]
@@ -47,4 +66,3 @@ export const getHexagramFromBits = (bits) => {
   if (!lower || !upper) throw new Error('No trigrams match the supplied bits')
   return HEXAGRAM_BY_BITS[bits]
 }
-
