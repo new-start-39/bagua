@@ -1,0 +1,28 @@
+{
+  "name": "bagua",
+  "version": "0.1.0",
+  "private": true,
+  "description": "赛博八卦：一个手写的 Vue + Vite + SCSS 起始项目。",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "harness": "node scripts/harness.mjs",
+    "harness:doctor": "node scripts/harness.mjs doctor",
+    "harness:check": "node scripts/harness.mjs check",
+    "test": "node --test",
+    "ci": "node scripts/harness.mjs ci"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "sass": "^1.89.2",
+    "vite": "^7.1.3"
+  }
+}

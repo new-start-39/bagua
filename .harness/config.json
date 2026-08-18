@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "project": "bagua",
+  "verification": {
+    "required": ["harness:doctor", "harness:check", "test"]
+  },
+  "skillsDirectory": ".agents/skills",
+  "documentation": {
+    "map": "AGENTS.md",
+    "architecture": "ARCHITECTURE.md",
+    "decisions": "docs/decisions"
+  }
+}
