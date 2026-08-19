@@ -28,6 +28,7 @@ const currentPosition = computed(() => ['初爻', '二爻', '三爻', '四爻', 
 const currentLine = computed(() => lastCoins.value.length ? getLineFromCoins(lastCoins.value) : null)
 const isComplete = computed(() => records.value.length === 6)
 const historyCount = computed(() => history.value.length)
+const displayLines = computed(() => result.value ? [...result.value.lines].reverse() : [])
 
 const randomCoin = () => {
   if (globalThis.crypto?.getRandomValues) {
@@ -190,7 +191,7 @@ onBeforeUnmount(() => {
     <section v-else key="result" class="result-view" aria-labelledby="result-title">
       <div class="section-heading"><div><p class="eyebrow"><span>03</span> ORACLE RESOLVED / 卦象已成</p><h1 id="result-title">此刻，<em>有象</em>。</h1></div><button class="ghost-button" type="button" @click="startDivination">重新起卦 ↗</button></div>
       <div class="result-grid"><article class="hexagram-card"><div class="card-kicker">本卦 / PRESENT FORM</div><div class="hexagram-symbol" aria-hidden="true">{{ result.original.symbol }}</div><div class="hexagram-name"><small>第 {{ result.original.number }} 卦</small><h2>{{ result.original.name }}</h2></div><div class="trigram-pair"><span>{{ result.original.upper.symbol }} {{ result.original.upper.name }} · {{ result.original.upper.natural }}</span><i>上卦</i><span>{{ result.original.lower.symbol }} {{ result.original.lower.name }} · {{ result.original.lower.natural }}</span><i>下卦</i></div><div class="judgment"><span>卦辞</span><p>{{ result.original.judgment }}</p></div></article><article v-if="result.changingLines.length" class="hexagram-card transformed"><div class="card-kicker">变卦 / EMERGING FORM</div><div class="hexagram-symbol" aria-hidden="true">{{ result.transformed.symbol }}</div><div class="hexagram-name"><small>第 {{ result.transformed.number }} 卦</small><h2>{{ result.transformed.name }}</h2></div><div class="trigram-pair"><span>{{ result.transformed.upper.symbol }} {{ result.transformed.upper.name }} · {{ result.transformed.upper.natural }}</span><i>上卦</i><span>{{ result.transformed.lower.symbol }} {{ result.transformed.lower.name }} · {{ result.transformed.lower.natural }}</span><i>下卦</i></div><div class="judgment"><span>卦辞</span><p>{{ result.transformed.judgment }}</p></div></article></div>
-      <div class="result-footer"><div class="mini-lines"><span v-for="(line, index) in result.lines" :key="index" :class="[line.yinYang, { changing: line.changing }]">{{ line.yinYang === 'yang' ? '━━━━━' : '━━　━━' }}</span></div><p>{{ result.changingLines.length ? `动爻：${result.changingLines.map((index) => ['初', '二', '三', '四', '五', '上'][index] + '爻').join('、')}` : '本次无动爻 · 静卦仅取本卦' }}<br /><small>卦辞据《周易》原典 · 结果仅供传统文化体验</small></p></div>
+      <div class="result-footer"><div class="mini-lines"><span v-for="(line, index) in displayLines" :key="index" :class="[line.yinYang, { changing: line.changing }]">{{ line.yinYang === 'yang' ? '━━━━━' : '━━　━━' }}</span></div><p>{{ result.changingLines.length ? `动爻：${result.changingLines.map((index) => ['初', '二', '三', '四', '五', '上'][index] + '爻').join('、')}` : '本次无动爻 · 静卦仅取本卦' }}<br /><small>卦辞据《周易》原典 · 结果仅供传统文化体验</small></p></div>
     </section>
     </Transition>
   </main>

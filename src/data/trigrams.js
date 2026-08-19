@@ -6,16 +6,15 @@
  */
 export const TRIGRAMS = Object.freeze([
   { id: 'kun', name: '坤', symbol: '☷', natural: '地', bits: '000' },
-  { id: 'zhen', name: '震', symbol: '☳', natural: '雷', bits: '001' },
+  { id: 'zhen', name: '震', symbol: '☳', natural: '雷', bits: '100' },
   { id: 'kan', name: '坎', symbol: '☵', natural: '水', bits: '010' },
-  { id: 'dui', name: '兑', symbol: '☱', natural: '泽', bits: '011' },
-  { id: 'gen', name: '艮', symbol: '☶', natural: '山', bits: '100' },
+  { id: 'dui', name: '兑', symbol: '☱', natural: '泽', bits: '110' },
+  { id: 'gen', name: '艮', symbol: '☶', natural: '山', bits: '001' },
   { id: 'li', name: '离', symbol: '☲', natural: '火', bits: '101' },
-  { id: 'xun', name: '巽', symbol: '☴', natural: '风', bits: '110' },
+  { id: 'xun', name: '巽', symbol: '☴', natural: '风', bits: '011' },
   { id: 'qian', name: '乾', symbol: '☰', natural: '天', bits: '111' },
 ])
 
 export const TRIGRAM_BY_BITS = Object.freeze(
   Object.fromEntries(TRIGRAMS.map((trigram) => [trigram.bits, trigram])),
 )
-

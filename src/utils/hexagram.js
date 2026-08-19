@@ -36,8 +36,10 @@ const assertLineValue = (value) => {
 
 export const getLineFromCoins = (coins) => {
   if (!Array.isArray(coins) || coins.length !== 3) throw new RangeError('Exactly three coins are required')
-  const value = coins.reduce((sum, coin) => sum + (coin === 'character' ? COIN_VALUES.character : coin === 'back' ? COIN_VALUES.back : 0), 0)
-  if (value < 6 || value > 9) throw new RangeError('Coins must contain only character or back')
+  if (!coins.every((coin) => coin === 'character' || coin === 'back')) {
+    throw new RangeError('Coins must contain only character or back')
+  }
+  const value = coins.reduce((sum, coin) => sum + COIN_VALUES[coin], 0)
   return { ...assertLineValue(value), coins: [...coins] }
 }
 
