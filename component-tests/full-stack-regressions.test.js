@@ -181,6 +181,23 @@ describe('full-stack page regressions', () => {
     expect(wrapper.text()).toContain('问此一卦')
   })
 
+  test('AI initialization distinguishes the site conversation allowance and shows its recovery time', async () => {
+    const cloud = record('div_limited', '123e4567-e89b-42d3-a456-426614174209', 1, '乾')
+    mocks.route.name = 'ai-init'
+    mocks.route.params = { castId: cloud.id }
+    mocks.getDivination.mockResolvedValue(cloud)
+    mocks.createConversation.mockRejectedValue(Object.assign(
+      new Error('当前账号已用完本站滚动 24 小时内新建 5 个 AI 对话的额度'),
+      { code: 'AI_DAILY_QUOTA_EXCEEDED', retryAfter: 3600 },
+    ))
+    const wrapper = mount(AiConversationPage)
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('当前账号已用完本站滚动 24 小时内新建 5 个 AI 对话的额度')
+    expect(wrapper.find('.retry-time').text()).toMatch(/^预计可于 .+（你的本地时间）再次创建新对话。$/)
+    expect(wrapper.text()).not.toContain('AI 供应商额度不足')
+  })
+
   test('Enter sends, Shift+Enter keeps a newline, and stop explicitly cancels the backend message', async () => {
     const cloud = record('div_chat', '123e4567-e89b-42d3-a456-426614174206', 1, '乾')
     mocks.route.name = 'ai-conversation'

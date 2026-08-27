@@ -230,7 +230,7 @@ unknown | authenticated | anonymous
 
 前端根据稳定的 `code` 处理业务分支，`message` 只用于合适的用户提示，不解析文本判断错误类型。
 
-AI 相关稳定错误码包括 `AI_INPUT_TOO_LONG`、`AI_SCOPE_AMBIGUOUS`、`AI_SCOPE_REJECTED`、`AI_RATE_LIMITED`、`AI_DAILY_QUOTA_EXCEEDED`、`AI_TOKEN_QUOTA_EXCEEDED` 和 `AI_CONCURRENCY_LIMITED`。429 响应可以在 `error.retryAfter` 返回可重试等待秒数，前端据此展示剩余等待时间。
+AI 相关稳定错误码包括 `AI_INPUT_TOO_LONG`、`AI_SCOPE_AMBIGUOUS`、`AI_SCOPE_REJECTED`、`AI_RATE_LIMITED`、`AI_DAILY_QUOTA_EXCEEDED`、`AI_TOKEN_QUOTA_EXCEEDED` 和 `AI_CONCURRENCY_LIMITED`。429 响应可以在 `error.retryAfter` 返回可重试等待秒数。新对话初始化命中 `AI_DAILY_QUOTA_EXCEEDED` 时，页面必须明确这是本站账号或网络来源的滚动 24 小时新对话上限，并把 `retryAfter` 换算为用户本地恢复时刻；不得把本站额度描述成 AI 供应商余额不足。
 
 ### 8.2 鉴权接口
 
