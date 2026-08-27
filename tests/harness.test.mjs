@@ -30,5 +30,32 @@ test('agent instructions expose personal coding preferences', () => {
 test('harness configuration points to the reserved skills directory', () => {
   const config = JSON.parse(readFileSync(join(root, '.harness/config.json'), 'utf8'));
   assert.equal(config.skillsDirectory, '.agents/skills');
-  assert.deepEqual(config.verification.required, ['harness:doctor', 'harness:check', 'test']);
+  assert.deepEqual(config.verification.required, [
+    'harness:doctor',
+    'harness:check',
+    'test',
+    'test:components',
+    'build'
+  ]);
+});
+
+test('Vercel keeps API traffic same-origin before applying the SPA fallback', () => {
+  const vercel = JSON.parse(readFileSync(join(root, 'vercel.json'), 'utf8'));
+  assert.deepEqual(vercel.rewrites, [
+    {
+      source: '/api/:path*',
+      destination: 'https://bagua-koa.whan.uk/api/:path*'
+    },
+    {
+      source: '/(.*)',
+      destination: '/index.html'
+    }
+  ]);
+
+  const headers = Object.fromEntries(
+    vercel.headers[0].headers.map(({ key, value }) => [key, value])
+  );
+  assert.match(headers['Content-Security-Policy'], /connect-src 'self'/);
+  assert.equal(headers['X-Content-Type-Options'], 'nosniff');
+  assert.equal(headers['X-Frame-Options'], 'DENY');
 });

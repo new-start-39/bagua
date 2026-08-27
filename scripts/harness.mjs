@@ -22,6 +22,11 @@ function run(name, file, args = []) {
   execFileSync(file, args, { cwd: root, stdio: 'inherit' });
 }
 
+function test() {
+  run('unit tests', process.execPath, ['--test', 'tests/*.test.mjs']);
+  run('component and route tests', process.execPath, ['node_modules/vitest/vitest.mjs', 'run']);
+}
+
 function doctor() {
   console.log('Harness doctor');
   console.log(`Project: ${root}`);
@@ -63,8 +68,15 @@ function check() {
 switch (command) {
   case 'doctor': doctor(); break;
   case 'check': check(); break;
-  case 'test': run('tests', process.execPath, ['--test']); break;
-  case 'ci': doctor(); check(); if (!process.exitCode) run('tests', process.execPath, ['--test']); break;
+  case 'test': test(); break;
+  case 'ci':
+    doctor();
+    check();
+    if (!process.exitCode) {
+      test();
+      run('production build', process.execPath, ['node_modules/vite/bin/vite.js', 'build']);
+    }
+    break;
   case 'help':
   default:
     console.log('Usage: npm run harness:<doctor|check> | npm test | npm run ci');

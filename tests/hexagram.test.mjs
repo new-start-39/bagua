@@ -66,10 +66,10 @@ test('converts test line values into deterministic coin faces', () => {
   assert.deepEqual(getCoinsFromLineValue(9), ['back', 'back', 'back'])
 })
 
-test('parses exactly six online test line values from the hash', () => {
-  assert.deepEqual(parseTestSequence('#test=6,7,8,9,7,8'), [6, 7, 8, 9, 7, 8])
-  assert.equal(parseTestSequence('#test=6,7,8'), null)
-  assert.equal(parseTestSequence('#test=6,7,8,9,7,5'), null)
+test('parses exactly six online test line values from the route query', () => {
+  assert.deepEqual(parseTestSequence('6,7,8,9,7,8'), [6, 7, 8, 9, 7, 8])
+  assert.equal(parseTestSequence('6,7,8'), null)
+  assert.equal(parseTestSequence('6,7,8,9,7,5'), null)
   assert.equal(parseTestSequence(''), null)
 })
 

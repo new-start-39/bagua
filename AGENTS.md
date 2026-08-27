@@ -4,6 +4,14 @@
 
 This repository is currently a framework-neutral project scaffold. Preserve the harness conventions while adding product code.
 
+## Sibling backend repository
+
+- The backend repository's real absolute path is `C:\Users\Administrator\Desktop\bagua_koa`.
+- The backend is a sibling of this frontend repository: both `bagua` and `bagua_koa` are directly under `C:\Users\Administrator\Desktop`.
+- From this repository, the correct relative backend path is `..\bagua_koa`.
+- The backend is **not** inside this repository. Never interpret or rewrite its path as `C:\Users\Administrator\Desktop\bagua\_koa`, `_koa`, or any other child path of `bagua`.
+- When backend context is needed, verify and use the recorded sibling path directly instead of inferring a path from the current working directory.
+
 ## Start here
 
 1. Read `README.md` and `ARCHITECTURE.md`.

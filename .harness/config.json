@@ -2,7 +2,7 @@
   "version": 1,
   "project": "bagua",
   "verification": {
-    "required": ["harness:doctor", "harness:check", "test"]
+    "required": ["harness:doctor", "harness:check", "test", "test:components", "build"]
   },
   "skillsDirectory": ".agents/skills",
   "documentation": {

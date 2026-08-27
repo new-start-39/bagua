@@ -23,10 +23,10 @@ export const getCoinsFromLineValue = (value) => {
   return [...coinsByValue[value]]
 }
 
-export const parseTestSequence = (hash) => {
-  const match = String(hash ?? '').match(/^#test=(.*)$/)
-  if (!match || !TEST_LINE_PATTERN.test(match[1])) return null
-  return match[1].split(',').map(Number)
+export const parseTestSequence = (value) => {
+  const sequence = String(value ?? '').replace(/^#test=/, '')
+  if (!TEST_LINE_PATTERN.test(sequence)) return null
+  return sequence.split(',').map(Number)
 }
 
 const assertLineValue = (value) => {
