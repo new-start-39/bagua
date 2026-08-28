@@ -193,8 +193,13 @@ describe('full-stack page regressions', () => {
     const wrapper = mount(AiConversationPage)
     await flushPromises()
 
+    expect(wrapper.find('.desktop-error-title').text()).toBe('无法开始解读')
+    expect(wrapper.find('.mobile-error-title').text()).toBe('新对话额度已用完')
     expect(wrapper.text()).toContain('当前账号已用完本站滚动 24 小时内新建 5 个 AI 对话的额度')
-    expect(wrapper.find('.retry-time').text()).toMatch(/^预计可于 .+（你的本地时间）再次创建新对话。$/)
+    expect(wrapper.find('.retry-time-desktop').text()).toMatch(/^预计可于 .+（你的本地时间）再次创建新对话。$/)
+    expect(wrapper.find('.retry-time-mobile small').text()).toBe('可再次创建')
+    expect(wrapper.find('.retry-time-mobile strong').text()).toMatch(/.+/)
+    expect(wrapper.find('.retry-time-mobile em').text()).toBe('按你的本地时间')
     expect(wrapper.text()).not.toContain('AI 供应商额度不足')
   })
 
@@ -313,6 +318,46 @@ describe('full-stack page regressions', () => {
     expect(mocks.routerPush).toHaveBeenCalledWith({
       name: 'result', params: { castId: local.clientId },
     })
+  })
+
+  test('account and local history share one drawer scroll region and lock background scrolling', async () => {
+    const cloud = record('div_cloud', '123e4567-e89b-42d3-a456-426614174211', 1, '乾')
+    const localItems = [
+      createHistoryRecord([7, 8, 7, 8, 7, 8], {
+        clientId: '123e4567-e89b-42d3-a456-426614174212', createdAt: Date.now(),
+      }),
+      createHistoryRecord([8, 7, 8, 7, 8, 7], {
+        clientId: '123e4567-e89b-42d3-a456-426614174213', createdAt: Date.now() - 1,
+      }),
+      createHistoryRecord([7, 7, 8, 8, 7, 8], {
+        clientId: '123e4567-e89b-42d3-a456-426614174214', createdAt: Date.now() - 2,
+      }),
+    ]
+    historyController.source.value = 'cloud'
+    historyController.items.value = [cloud]
+    historyController.localItems.value = localItems
+    historyController.localCount.value = localItems.length
+    historyController.canMerge.value = true
+    const wrapper = mount(App, {
+      global: { stubs: { RouterLink: routerLink, RouterView: { template: '<div />' }, Transition: false } },
+    })
+
+    try {
+      await wrapper.find('.history-button').trigger('click')
+      await flushPromises()
+
+      const scrollRegion = wrapper.find('.history-content')
+      expect(scrollRegion.findAll('.history-list')).toHaveLength(2)
+      expect(scrollRegion.text()).toContain('账户记录')
+      expect(scrollRegion.text()).toContain('本机记录（未合并）')
+      expect(document.body.classList.contains('history-open')).toBe(true)
+
+      await wrapper.find('.history-close').trigger('click')
+      await nextTick()
+      expect(document.body.classList.contains('history-open')).toBe(false)
+    } finally {
+      wrapper.unmount()
+    }
   })
 
   test('history entries require confirmation and keep delete separate from opening a result', async () => {
