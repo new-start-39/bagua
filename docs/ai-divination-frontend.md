@@ -230,7 +230,7 @@ unknown | authenticated | anonymous
 
 前端根据稳定的 `code` 处理业务分支，`message` 只用于合适的用户提示，不解析文本判断错误类型。
 
-AI 相关稳定错误码包括 `AI_INPUT_TOO_LONG`、`AI_SCOPE_AMBIGUOUS`、`AI_SCOPE_REJECTED`、`AI_RATE_LIMITED`、`AI_DAILY_QUOTA_EXCEEDED`、`AI_TOKEN_QUOTA_EXCEEDED` 和 `AI_CONCURRENCY_LIMITED`。429 响应可以在 `error.retryAfter` 返回可重试等待秒数。新对话初始化命中 `AI_DAILY_QUOTA_EXCEEDED` 时，页面必须明确这是本站账号或网络来源的滚动 24 小时新对话上限，并把 `retryAfter` 换算为用户本地恢复时刻；不得把本站额度描述成 AI 供应商余额不足。
+AI 相关稳定错误码包括 `AI_INPUT_TOO_LONG`、`AI_INPUT_REJECTED`、`AI_RATE_LIMITED`、`AI_DAILY_QUOTA_EXCEEDED`、`AI_TOKEN_QUOTA_EXCEEDED` 和 `AI_CONCURRENCY_LIMITED`。429 响应可以在 `error.retryAfter` 返回可重试等待秒数。新对话初始化命中 `AI_DAILY_QUOTA_EXCEEDED` 时，页面必须明确这是本站账号或网络来源的滚动 24 小时新对话上限，并把 `retryAfter` 换算为用户本地恢复时刻；不得把本站额度描述成 AI 供应商余额不足。
 
 ### 8.2 鉴权接口
 
@@ -475,13 +475,13 @@ src/
 - 指定卦象不存在、损坏、版本不兼容。
 - 历史同步中、部分成功、离线待同步、冲突去重。
 - AI 初始化中、生成中、用户停止、网络中断、内容失败和重试。
-- 在收到 `message.start` 前发生的 JSON、范围判断或连接失败只作为输入区错误展示：移除临时问题与 AI 加载消息，并把原问题放回输入框；流已经开始后的失败保留为对话终态。
-- AI 输入过长、范围需要澄清、请求超出解卦范围、短时限流、24 小时次数或 token 用尽、并发占用以及对应的可重试时间。
+- 在收到 `message.start` 前发生的输入保护、JSON 或连接失败只作为输入区错误展示：移除临时问题与 AI 加载消息，并把原问题放回输入框；流已经开始后的失败保留为对话终态。
+- AI 输入过长、提示注入保护、短时限流、24 小时次数或 token 用尽、并发占用以及对应的可重试时间。
 - 登录过程中保留原始 `castId`，不得回跳到其他卦象。
 
 401 统一使当前会话失效，并将受保护页面送回登录流程；普通业务错误不得被误判成退出登录。
 
-范围判断应允许用户围绕当前卦象讨论工作、感情、家庭、人际、学业、健康焦虑和人生选择等广泛问题。只有当主要目标变成与当前卦象无关的通用问答、代码、翻译、长文代写、提示词套取或指令覆盖时，前端才展示服务端的范围提示；前端不得用关键词黑名单自行拦截。
+前端不判断问题是否与卦象相关，也不使用关键词黑名单拦截话题。每条通过基础校验的消息都交给后端单次生成流程；前端只展示服务端返回的输入保护或模型回复。
 
 ## 11. 验收标准
 

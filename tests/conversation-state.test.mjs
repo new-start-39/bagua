@@ -96,7 +96,7 @@ test('hexagram symbols follow the actual King Wen number', () => {
   assert.notEqual(getHexagramSymbol(38), getHexagramSymbol(1))
 })
 
-test('scope and validation errors require editing instead of blind retry', () => {
-  assert.equal(isRetryableConversationError({ code: 'AI_SCOPE_REJECTED' }), false)
+test('input guard and validation errors require editing instead of blind retry', () => {
+  assert.equal(isRetryableConversationError({ code: 'AI_INPUT_REJECTED' }), false)
   assert.equal(isRetryableConversationError({ code: 'AI_PROVIDER_FAILED' }), true)
 })

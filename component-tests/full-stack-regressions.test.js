@@ -248,8 +248,8 @@ describe('full-stack page regressions', () => {
       messages: [{ id: 'msg_open', role: 'assistant', content: '所问何事？', status: 'completed' }],
     })
     mocks.streamConversationMessage.mockRejectedValue(Object.assign(
-      new Error('暂时无法确认问题与卦象的关系，请稍后重试'),
-      { code: 'AI_SCOPE_CHECK_UNAVAILABLE' },
+      new Error('服务暂时不可用，请稍后重试'),
+      { code: 'AI_PROVIDER_UNAVAILABLE' },
     ))
     const wrapper = mount(AiConversationPage)
     await flushPromises()
@@ -262,7 +262,7 @@ describe('full-stack page regressions', () => {
     expect(wrapper.findAll('.message-list li.assistant')).toHaveLength(1)
     expect(wrapper.find('.message-list .cursor').exists()).toBe(false)
     expect(wrapper.find('textarea').element.value).toBe('工作如何？')
-    expect(wrapper.find('.send-error').text()).toContain('暂时无法确认问题与卦象的关系')
+    expect(wrapper.find('.send-error').text()).toContain('服务暂时不可用')
   })
 
   test('registration returns to the login page instead of authenticating the user', async () => {
