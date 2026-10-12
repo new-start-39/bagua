@@ -45,13 +45,14 @@ test('mobile conversation quota state uses a centered, tiered recovery layout', 
   assert.match(mobileConversation, /\.retry-time-mobile\s*\{[^}]*display:\s*grid[^}]*justify-items:\s*center/)
 })
 
-test('user question marker stays on the right without changing the question alignment', () => {
+test('user questions stay on the right while wrapped text reads from the left', () => {
   const conversation = readFileSync(resolve(root, 'src/pages/AiConversationPage.vue'), 'utf8')
 
   assert.match(conversation, /&\.user\s*\{[^}]*position:\s*relative[^}]*display:\s*block[^}]*justify-self:\s*end[^}]*text-align:\s*right/)
   assert.match(conversation, /> span\s*\{[^}]*position:\s*absolute[^}]*right:\s*0/)
   assert.match(conversation, /> div\s*\{[^}]*display:\s*grid[^}]*justify-items:\s*end/)
   assert.match(conversation, /small\s*\{[^}]*min-height:\s*32px[^}]*margin-right:\s*44px/)
+  assert.match(conversation, /p\s*\{[^}]*width:\s*fit-content[^}]*max-width:\s*100%[^}]*text-align:\s*left[^}]*overflow-wrap:\s*anywhere/)
 })
 
 test('mobile motion control keeps the neighboring control height when its label is hidden', () => {
